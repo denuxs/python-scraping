@@ -15,7 +15,7 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 # options.page_load_strategy = 'none'
 
-driver = Chrome(options=options)
+driver = Chrome(service=service, options=options)
 driver.implicitly_wait(0.5)
 
 st.subheader("Empleos Nicaragua")
