@@ -12,6 +12,7 @@ from src.utils import LOCATIONS, getLocation
 service = Service(ChromeDriverManager().install())
 options = ChromeOptions()
 options.add_argument("--headless=new")
+options.add_argument("--no-sandbox")
 # options.page_load_strategy = 'none'
 
 driver = Chrome(service=service, options=options)
