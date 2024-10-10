@@ -6,8 +6,8 @@ from selenium.webdriver import Chrome, ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 
-from src.scraping import scraper
-from src.utils import LOCATIONS, getLocation
+from scraping import scraper
+from utils import LOCATIONS, getLocation
 
 service = Service(ChromeDriverManager().install())
 options = ChromeOptions()
