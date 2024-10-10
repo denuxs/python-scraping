@@ -2,9 +2,20 @@ import random
 import time
 import streamlit as st
 import pandas as pd
+from selenium.webdriver import Chrome, ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
-from scraping import fetchJobData
-from utils import LOCATIONS, getLocation
+from src.scraping import scraper
+from src.utils import LOCATIONS, getLocation
+
+service = Service(ChromeDriverManager().install())
+options = ChromeOptions()
+options.add_argument("--headless=new")
+# options.page_load_strategy = 'none'
+
+driver = Chrome(service=service, options=options)
+driver.implicitly_wait(0.5)
 
 st.subheader("Empleos Nicaragua")
 st.write(
@@ -24,20 +35,24 @@ with st.spinner("Cargando datos..."):
 
     data = []
     for i in range(1, 6):
-        page = f"{jobUrl}?p={i}"
+        page = jobUrl + "?p={i}"
 
         # avoid ban :v
         randomSleepTime = random.choice(sleepTime)
-        print(f"Esperando por {randomSleepTime} segundos")
+        print(f"Page {i}, esperando {randomSleepTime} segundos")
         time.sleep(randomSleepTime)
 
-        row = fetchJobData(page)
+        row = scraper(driver, page)
         data.append(row)
 
-    dataFlatten = [item for row in data for item in row]
+print('\n')
+dataFlatten = [item for row in data for item in row]
+columns = [["cargo", "empresa", "web", "publicado"]]
 
 if len(dataFlatten):
-    df = pd.DataFrame.from_dict(dataFlatten)
-    st.markdown(df.to_html(render_links=True, escape=False), unsafe_allow_html=True)
+    df = pd.DataFrame(dataFlatten, columns=columns[0])
+    st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 else:
     st.write("No se encontraron datos")
+
+driver.quit()

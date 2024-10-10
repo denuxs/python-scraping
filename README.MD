@@ -22,3 +22,7 @@ Renombra el archivo .env.example a .env
 ```
 streamlit run main.py
 ```
+
+### TO DO
+
+* Agregar otros sitios web similares como tecoloco y encuentra24
