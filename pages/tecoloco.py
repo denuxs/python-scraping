@@ -1,6 +1,6 @@
 import random
 import time
-from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver import Chrome, ChromeOptions, Remote
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
@@ -8,25 +8,39 @@ import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import requests
+import sys
 
 load_dotenv()
 
 API_URL = os.getenv("TECOLOCO_URL")
 PAGE_URL = API_URL + "/empleo-informatica-internet"
-
 COMPANY_SKIP = os.getenv("COMPANY_SKIP")
+USE_SELENIUM = os.getenv("USE_SELENIUM")
 
-service = Service(ChromeDriverManager().install())
-options = ChromeOptions()
-options.add_argument("--headless=new")
+USER_AGENT = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "3600",
+    "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
+}
 
-selenium = Chrome(service=service, options=options)
-selenium.implicitly_wait(0.5)
+if USE_SELENIUM == "True":
+    options = ChromeOptions()
+    selenium = Remote(command_executor="http://localhost:4444", options=options)
+    selenium.implicitly_wait(0.5)
 
 
 def getPageSource(page):
-    selenium.get(page)
-    html = selenium.page_source
+    html = None
+    if USE_SELENIUM == "True":
+        selenium.get(page)
+        html = selenium.page_source
+    else:
+        response = requests.get(page, headers=USER_AGENT)
+        # print(response.status_code)
+        html = response.content
 
     return BeautifulSoup(html, "html.parser")
 
@@ -95,4 +109,5 @@ if len(dataFlatten):
 else:
     st.write("No se encontraron datos")
 
-selenium.quit()
+if USE_SELENIUM == "True":
+    selenium.quit()
