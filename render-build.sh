@@ -2,7 +2,7 @@
 # exit on error
 set -o errexit
 
-STORAGE_DIR=/opt/render/project
+STORAGE_DIR=/opt/render/project/.render
 mkdir -p $STORAGE_DIR/chrome
 cd $STORAGE_DIR/chrome
 
