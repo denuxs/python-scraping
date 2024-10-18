@@ -77,8 +77,9 @@ with st.spinner("Cargando datos..."):
 
         html = scraper.fetch_page(page, use_header=True)
 
-        row = getJobsScraper(html)
-        data.append(row)
+        if html:
+            row = getJobsScraper(html)
+            data.append(row)
 
 scraper.close()
 

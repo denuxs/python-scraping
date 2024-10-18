@@ -54,7 +54,11 @@ class Scraper:
                     response = requests.get(url, headers=HEADERS)
                 else:
                     response = requests.get(url)
-                # print(response.status_code)
+                print(response.status_code)
+
+                if response.status_code == 404:
+                    return None
+                
                 response.raise_for_status()
                 page_source = response.content
 
@@ -67,7 +71,7 @@ class Scraper:
 
         except Exception as e:
             print(f"Error al obtener contenido: {e}")
-            sys.exit()
+            return None
 
     def parse_with_beautifulsoup(self, html_content):
         soup = BeautifulSoup(html_content, "html.parser")
