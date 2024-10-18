@@ -1,36 +1,14 @@
-import random
-import time
 import streamlit as st
 import pandas as pd
-from selenium.webdriver import Chrome, ChromeOptions
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
-import sys
-import requests
+from src.scraper import Scraper
 
 load_dotenv()
 
 API_URL = os.getenv("COMPUTRABAJO_URL")
 COMPANY_SKIP = os.getenv("COMPANY_SKIP")
 USE_SELENIUM = os.getenv("USE_SELENIUM")
-
-# USER_AGENT = [
-#     "Mozilla/5.0 (Linux; Android 4.4.4; [HM NOTE|NOTE-III|NOTE2 1LTET) AppleWebKit/537.39 (KHTML, like Gecko)  Chrome/53.0.2111.335 Mobile Safari/536.6"
-#     "Mozilla / 5.0 (compatible; MSIE 8.0; Windows; U; Windows NT 6.2; x64; en-US Trident / 4.0)"
-#     "Mozilla/5.0 (iPhone; CPU iPhone OS 8_0_8; like Mac OS X) AppleWebKit/536.13 (KHTML, like Gecko)  Chrome/50.0.2440.333 Mobile Safari/600.1"
-#     "Mozilla/5.0 (iPod; CPU iPod OS 11_1_7; like Mac OS X) AppleWebKit/603.49 (KHTML, like Gecko)  Chrome/51.0.1709.273 Mobile Safari/533.6"
-# ]
-
-USER_AGENT = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "3600",
-    "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
-}
 
 LOCATIONS = {
     1: "/empleos-en-matagalpa",
@@ -42,36 +20,13 @@ LOCATIONS = {
     7: "/empleos-en-granada",
 }
 
-if USE_SELENIUM == "True":
-    service = Service(ChromeDriverManager().install())
-    options = ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--user-agent=%s" % random.choice(USER_AGENT))
-    # options.page_load_strategy = 'none'
-
-    selenium = Chrome(service=service, options=options)
-    selenium.implicitly_wait(0.5)
-
 
 def getLocation(option):
     location = LOCATIONS[option]
     return API_URL + location
 
 
-def getPageSource(page):
-    html = None
-    if USE_SELENIUM == "True":
-        selenium.get(page)
-        html = selenium.page_source
-    else:
-        response = requests.get(page, headers=USER_AGENT)
-        # print(response.status_code)
-        html = response.content
-
-    return BeautifulSoup(html, "html.parser")
-
-
-def runScraper(html):
+def getJobsScraper(html):
     articles = html.find_all("article")
 
     companySkip = COMPANY_SKIP.split(",")
@@ -109,22 +64,23 @@ locationOption = st.selectbox(
 
 jobUrl = getLocation(locationOption)
 
+scraper = Scraper()
+html = scraper.fetch_page(jobUrl, use_header=True)
+
 data = []
+row = getJobsScraper(html)
+data.append(row)
+
 with st.spinner("Cargando datos..."):
-    sleepTime = [1, 2, 3, 4, 5]
-
     for i in range(2, 6):
-        page = jobUrl + "?p={i}"
+        page = jobUrl + f"?p={i}"
 
-        html = getPageSource(page)
+        html = scraper.fetch_page(page, use_header=True)
 
-        # avoid ban :v
-        randomSleepTime = random.choice(sleepTime)
-        print(f"Page {i}, esperando {randomSleepTime} segundos")
-        time.sleep(randomSleepTime)
-
-        row = runScraper(html)
+        row = getJobsScraper(html)
         data.append(row)
+
+scraper.close()
 
 print("\n")
 dataFlatten = [item for row in data for item in row]
@@ -136,6 +92,3 @@ if len(dataFlatten):
     st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 else:
     st.write("No se encontraron datos")
-
-if USE_SELENIUM == "True":
-    selenium.quit()

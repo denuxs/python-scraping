@@ -1,15 +1,8 @@
-import random
-import time
-from selenium.webdriver import Chrome, ChromeOptions, Remote
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from bs4 import BeautifulSoup
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 import os
-import requests
-import sys
+from src.scraper import Scraper
 
 load_dotenv()
 
@@ -18,26 +11,8 @@ PAGE_URL = API_URL + "/empleo-informatica-internet"
 COMPANY_SKIP = os.getenv("COMPANY_SKIP")
 USE_SELENIUM = os.getenv("USE_SELENIUM")
 
-if USE_SELENIUM == "True":
-    options = ChromeOptions()
-    selenium = Remote(command_executor="http://localhost:4444", options=options)
-    selenium.implicitly_wait(0.5)
 
-
-def getPageSource(page):
-    html = None
-    if USE_SELENIUM == "True":
-        selenium.get(page)
-        html = selenium.page_source
-    else:
-        response = requests.get(page)
-        # print(response.status_code)
-        html = response.content
-
-    return BeautifulSoup(html, "html.parser")
-
-
-def runScraper(html):
+def getJobsScraper(html):
     jobs = html.find_all(class_="module job-result")
 
     companySkip = COMPANY_SKIP.split(",")
@@ -64,31 +39,27 @@ def runScraper(html):
 
 st.subheader("Tecoloco Empleos")
 
-html = getPageSource(PAGE_URL)
+scraper = Scraper()
+html = scraper.fetch_page(PAGE_URL)
 
 pagination = html.find(id="pagination")
 pages = pagination.find_all("li")
 
 data = []
-row = runScraper(html)
+row = getJobsScraper(html)
 data.append(row)
 
 with st.spinner("Cargando datos..."):
     if len(pages) > 1:
-        sleepTime = [1, 2, 3, 4, 5]
-
         for i in pages[1:-1]:
-            page = PAGE_URL + "?Page={i}"
+            page = PAGE_URL + f"?Page={i}"
 
-            html = getPageSource(page)
+            html = scraper.fetch_page(page)
 
-            # avoid ban :v
-            randomSleepTime = random.choice(sleepTime)
-            print(f"Page {i}, esperando {randomSleepTime} segundos")
-            time.sleep(randomSleepTime)
-
-            row = runScraper(html)
+            row = getJobsScraper(html)
             data.append(row)
+
+scraper.close()
 
 print("\n")
 dataFlatten = [item for row in data for item in row]
@@ -100,6 +71,3 @@ if len(dataFlatten):
     st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 else:
     st.write("No se encontraron datos")
-
-if USE_SELENIUM == "True":
-    selenium.quit()
